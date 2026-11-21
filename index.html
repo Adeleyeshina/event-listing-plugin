@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie and Games Night — The Growth Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --event-coral: #EC7766;
+      --event-coral-hover: #E36351;
+      --card-bg: #120A31;
+      --card-gold: #F3C343;
+      --text-muted: #A6A3B2;
+      --font-heading: 'Poppins', sans-serif;
+      --font-body: 'Lato', sans-serif;
+      --container-max-width: 1180px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: #FFFFFF;
+      color: #111111;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: var(--container-max-width);
+      margin: 0 auto;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Hero banner */
+    .event-banner {
+      width: 100%;
+      background-color: var(--event-coral);
+      color: #FFFFFF;
+      padding: 50px 20px;
+      box-sizing: border-box;
+    }
+
+    .event-category {
+      font-family: var(--font-heading);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #FFFFFF;
+      margin-bottom: 12px;
+      opacity: 0.95;
+    }
+
+    .event-title {
+      font-family: var(--font-heading);
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      color: #FFFFFF;
+      margin-bottom: 12px;
+    }
+
+    .event-desc {
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.95);
+      max-width: 640px;
+    }
+
+    /* Content */
+    .event-content {
+      width: 100%;
+      background-color: #FFFFFF;
+      padding: 50px 20px 80px;
+      box-sizing: border-box;
+    }
+
+    /* Ticket card */
+    .ticket-card {
+      background-color: var(--card-bg);
+      border-radius: 20px;
+      padding: 30px 26px 26px;
+      width: 100%;
+      max-width: 350px;
+      color: #FFFFFF;
+      box-shadow: 0 16px 36px rgba(18, 10, 49, 0.16);
+      box-sizing: border-box;
+    }
+
+    .ticket-tier {
+      font-family: var(--font-heading);
+      color: var(--card-gold);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .ticket-price {
+      font-family: var(--font-heading);
+      font-size: 34px;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1;
+      margin-bottom: 24px;
+      letter-spacing: -0.01em;
+    }
+
+    .ticket-info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 26px;
+    }
+
+    .ticket-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.4;
+      gap: 12px;
+    }
+
+    .ticket-label {
+      color: var(--text-muted);
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
+    .ticket-value {
+      color: #FFFFFF;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    /* Button */
+    .ticket-btn {
+      display: block;
+      width: 100%;
+      background-color: var(--event-coral);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-family: var(--font-heading);
+      font-size: 13.5px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: background-color 0.2s ease, transform 0.15s ease;
+      box-shadow: 0 4px 14px rgba(236, 119, 102, 0.35);
+    }
+
+    .ticket-btn:hover {
+      background-color: var(--event-coral-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(236, 119, 102, 0.45);
+    }
+
+    .ticket-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .event-banner {
+        padding: 40px 20px;
+      }
+
+      .event-title {
+        font-size: 34px;
+      }
+
+      .event-content {
+        padding: 40px 20px 60px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .container {
+        padding: 0;
+      }
+
+      .event-banner {
+        padding: 30px 20px;
+      }
+
+      .event-category {
+        font-size: 10.5px;
+        margin-bottom: 10px;
+      }
+
+      .event-title {
+        font-size: 26px;
+      }
+
+      .event-desc {
+        font-size: 14.5px;
+      }
+
+      .event-content {
+        padding: 30px 20px 50px;
+      }
+
+      .ticket-card {
+        max-width: 100%;
+        padding: 24px 20px 22px;
+        border-radius: 16px;
+      }
+
+      .ticket-price {
+        font-size: 30px;
+        margin-bottom: 20px;
+      }
+
+      .ticket-row {
+        font-size: 13.5px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero Banner -->
+  <header class="event-banner">
+    <div class="container">
+      <div class="event-category">COMMUNITY EVENT, THE GROWTH HUB</div>
+      <h1 class="event-title">Movie and Games Night</h1>
+      <p class="event-desc">Karaoke, games, movies, and music, one night for the whole community.</p>
+    </div>
+  </header>
+
+  <!-- Event Content -->
+  <main class="event-content">
+    <div class="container">
+      <div class="ticket-card">
+        <div class="ticket-tier">GENERAL ADMISSION</div>
+        <div class="ticket-price">&#8358;3,000</div>
+
+        <div class="ticket-info-list">
+          <div class="ticket-row">
+            <span class="ticket-label">Date</span>
+            <span class="ticket-value">27th March 2026</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-label">Time</span>
+            <span class="ticket-value">6:00 PM</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-label">Venue</span>
+            <span class="ticket-value">AKAD Junction, Akure</span>
+          </div>
+        </div>
+
+        <button type="button" class="ticket-btn">
+          Buy Ticket, Get Instant QR Code
+        </button>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>
