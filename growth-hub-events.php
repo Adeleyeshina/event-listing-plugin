@@ -1,8 +1,10 @@
+<?php
 /**
  * Plugin Name: Growth Hub Events
- * Description: Event post type with details (date, time, venue, price, capacity, color, subtitle). Each event automatically gets a hidden WooCommerce ticket product, a "Get Ticket" button that goes straight to checkout, Elementor template shortcodes ([gh_single_event] and [gh_events]), and dynamic per-event color theming.
- * Version: 1.3.1
+ * Description: Event post type with WooCommerce ticket integration, dynamic color theming, QR code ticketing, and Elementor templates.
+ * Version: 1.3.2
  * Author: Shina Adeleye
+ * Text Domain: growth-hub-events
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -10,11 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * ============================================================
- * 1. EVENT POST TYPE
- *    Single events live at /event/event-name/ so that you are
- *    free to build your own listing page at /events/.
- * ============================================================
+ * Register Event post type.
  */
 add_action( 'init', 'gh_event_register_cpt' );
 function gh_event_register_cpt() {
@@ -42,9 +40,7 @@ register_activation_hook( __FILE__, function() {
 } );
 
 /**
- * ============================================================
- * 2. EVENT DETAILS FORM (shown on the Add/Edit Event screen)
- * ============================================================
+ * Event meta boxes.
  */
 add_action( 'add_meta_boxes', function() {
     add_meta_box( 'gh_event_details', 'Event Details', 'gh_event_render_meta_box', 'gh_event', 'normal', 'high' );
@@ -66,17 +62,17 @@ function gh_event_render_meta_box( $post ) {
     ?>
     <table class="form-table">
         <tr>
-            <th><label for="gh_event_subtitle">Hero Subtitle / Description</label></th>
+            <th><label for="gh_event_subtitle">Hero Subtitle</label></th>
             <td>
                 <textarea id="gh_event_subtitle" name="gh_event_subtitle" rows="2" class="large-text"><?php echo esc_textarea( $subtitle ); ?></textarea>
-                <p class="description">Displays under the event title in the hero banner (e.g. "Karaoke, games, movies, and music, one night for the whole community.").</p>
+                <p class="description">Short summary displayed under the event title in the hero banner.</p>
             </td>
         </tr>
         <tr>
             <th><label for="gh_event_date">Event date</label></th>
             <td>
                 <input type="date" id="gh_event_date" name="gh_event_date" value="<?php echo esc_attr( $date ); ?>">
-                <p class="description">Needed for sorting upcoming events (soonest first).</p>
+                <p class="description">Date of the event for chronological sorting.</p>
             </td>
         </tr>
         <tr>
@@ -91,21 +87,21 @@ function gh_event_render_meta_box( $post ) {
             <th><label for="gh_event_price">Ticket price</label></th>
             <td>
                 <input type="number" step="0.01" min="0" id="gh_event_price" name="gh_event_price" value="<?php echo esc_attr( $price === '' ? 0 : $price ); ?>" style="width:160px;">
-                <p class="description">Enter 0 for a free event.</p>
+                <p class="description">Enter 0 for free events.</p>
             </td>
         </tr>
         <tr>
             <th><label for="gh_event_capacity">Number of tickets</label></th>
             <td>
                 <input type="number" min="0" id="gh_event_capacity" name="gh_event_capacity" value="<?php echo esc_attr( $capacity ); ?>" style="width:160px;">
-                <p class="description">Leave blank for unlimited. When tickets run out the button changes to "Sold Out".</p>
+                <p class="description">Leave blank for unlimited capacity.</p>
             </td>
         </tr>
         <tr>
             <th><label for="gh_event_color">Event colour</label></th>
             <td>
                 <input type="color" id="gh_event_color" name="gh_event_color" value="<?php echo esc_attr( $color ); ?>">
-                <p class="description">Used for this event's hero banner, card button, and accent styling in templates.</p>
+                <p class="description">Accent color for hero banner, badges, and buttons.</p>
             </td>
         </tr>
     </table>
@@ -142,10 +138,7 @@ function gh_event_save_meta( $post_id, $post ) {
 }
 
 /**
- * ============================================================
- * 3. TICKET PRODUCT — one hidden WooCommerce product per event,
- *    created and kept in sync automatically (price, stock, image).
- * ============================================================
+ * Synchronize hidden WooCommerce ticket product.
  */
 add_action( 'save_post_gh_event', 'gh_event_sync_product', 20, 2 );
 function gh_event_sync_product( $post_id, $post ) {
@@ -175,7 +168,7 @@ function gh_event_sync_product( $post_id, $post ) {
     $product->set_virtual( true );
     $product->set_regular_price( (string) $price );
 
-    // Stock follows the "Number of tickets" field.
+    // Manage inventory based on capacity.
     if ( '' === $capacity ) {
         $product->set_manage_stock( false );
         $product->set_stock_status( 'instock' );
@@ -214,7 +207,7 @@ function gh_event_sync_product( $post_id, $post ) {
     update_post_meta( $post_id, '_gh_event_capacity_synced', $capacity );
 }
 
-// Trashing an event takes its ticket product off sale.
+// Draft ticket product when event is trashed.
 add_action( 'wp_trash_post', function( $post_id ) {
     if ( 'gh_event' !== get_post_type( $post_id ) || ! function_exists( 'wc_get_product' ) ) {
         return;
@@ -228,18 +221,7 @@ add_action( 'wp_trash_post', function( $post_id ) {
 } );
 
 /**
- * ============================================================
- * 4. SHOW EVENT DETAILS — shortcode [gh_event field="..."]
- *    field="title"
- *    field="subtitle"
- *    field="date" format="jS F Y"
- *    field="time" format="g:i A"
- *    field="venue"
- *    field="price"
- *    field="tickets_left"
- *    field="color"
- *    field="url"
- * ============================================================
+ * Display individual event fields: [gh_event field="..."]
  */
 function gh_event_resolve_id( $id = 0 ) {
     $event_id = (int) $id ? (int) $id : (int) get_the_ID();
@@ -317,9 +299,7 @@ function gh_event_field_shortcode( $atts ) {
 }
 
 /**
- * ============================================================
- * 5. GET TICKET BUTTON — shortcode [gh_event_ticket]
- * ============================================================
+ * Event ticket button shortcode: [gh_event_ticket]
  */
 add_shortcode( 'gh_event_ticket', 'gh_event_ticket_shortcode' );
 function gh_event_ticket_shortcode( $atts ) {
@@ -404,12 +384,12 @@ function gh_event_handle_ticket_submit() {
 
     if ( function_exists( 'WC' ) && WC()->cart ) {
 
-        // Make sure a guest's cart session exists before the ticket is added.
+        // Initialize guest session if needed.
         if ( WC()->session && ! WC()->session->has_session() ) {
             WC()->session->set_customer_session_cookie( true );
         }
 
-        // Always clear the cart first, so checkout holds ONLY the event that was just clicked.
+        // Clear cart for direct ticket checkout.
         WC()->cart->empty_cart();
 
         $cart_item_key = WC()->cart->add_to_cart( $product->get_id(), 1 );
@@ -433,9 +413,7 @@ function gh_event_handle_ticket_submit() {
 }
 
 /**
- * ============================================================
- * 6. EVENT COLOUR CSS VARIABLES
- * ============================================================
+ * Output dynamic event color CSS variables.
  */
 add_action( 'wp_head', 'gh_event_print_css', 20 );
 function gh_event_print_css() {
@@ -468,9 +446,7 @@ function gh_event_print_css() {
 }
 
 /**
- * ============================================================
- * 7. LISTING ORDER — Elementor Loop Query: gh_upcoming_events
- * ============================================================
+ * Filter Elementor query to order upcoming events by date.
  */
 add_action( 'elementor/query/gh_upcoming_events', function( $query ) {
     $query->set( 'meta_key', 'gh_event_date' );
@@ -479,9 +455,7 @@ add_action( 'elementor/query/gh_upcoming_events', function( $query ) {
 } );
 
 /**
- * ============================================================
- * 8. ADMIN LIST COLUMNS
- * ============================================================
+ * Admin post list columns.
  */
 add_filter( 'manage_gh_event_posts_columns', function( $columns ) {
     $new = array();
@@ -540,9 +514,7 @@ add_action( 'pre_get_posts', function( $query ) {
 } );
 
 /**
- * ============================================================
- * 9. EVENT LISTING GRID — shortcode [gh_events]
- * ============================================================
+ * Event grid shortcode: [gh_events]
  */
 add_shortcode( 'gh_events', 'gh_events_list_shortcode' );
 function gh_events_list_shortcode( $atts ) {
@@ -634,16 +606,7 @@ function gh_events_list_shortcode( $atts ) {
 }
 
 /**
- * ============================================================
- * 10. SINGLE EVENT TEMPLATE SHORTCODE — [gh_single_event]
- *     Renders the full hero banner & ticket card design.
- *     Hero color & button automatically use the event's colour!
- *     Fonts: Poppins for headings, Lato for body text.
- *     Fully responsive across desktop, tablet (1024px) & mobile (767px).
- *
- *     Usage in Elementor Single Event Template:
- *     [gh_single_event]
- * ============================================================
+ * Single event template shortcode: [gh_single_event]
  */
 add_shortcode( 'gh_single_event', 'gh_single_event_template_shortcode' );
 add_shortcode( 'gh_event_template', 'gh_single_event_template_shortcode' ); // Alias
@@ -662,7 +625,6 @@ function gh_single_event_template_shortcode( $atts ) {
         return '';
     }
 
-    // Event Data
     $title     = get_the_title( $event_id );
     $subtitle  = get_post_meta( $event_id, 'gh_event_subtitle', true );
     if ( ! $subtitle ) {
@@ -676,7 +638,7 @@ function gh_single_event_template_shortcode( $atts ) {
         $color = '#EC7766';
     }
 
-    // Format Date & Time
+    // Format date and time.
     $date_raw  = get_post_meta( $event_id, 'gh_event_date', true );
     $date_dt   = $date_raw ? date_create_from_format( 'Y-m-d', $date_raw, wp_timezone() ) : false;
     $date_text = $date_dt ? wp_date( 'jS F Y', $date_dt->getTimestamp() ) : 'TBA';
@@ -685,42 +647,40 @@ function gh_single_event_template_shortcode( $atts ) {
     $time_dt   = $time_raw ? date_create_from_format( 'H:i', $time_raw, wp_timezone() ) : false;
     $time_text = $time_dt ? wp_date( 'g:i A', $time_dt->getTimestamp() ) : 'TBA';
 
-    // Format Price
+    // Format price.
     if ( function_exists( 'wc_price' ) ) {
         $price_html = $price > 0 ? wc_price( $price ) : 'Free';
     } else {
         $price_html = $price > 0 ? '&#8358;' . number_format( $price, 2 ) : 'Free';
     }
 
-    // WooCommerce Stock Check
+    // Ticket inventory check.
     $product_id = (int) get_post_meta( $event_id, '_gh_event_product_id', true );
     $product    = ( $product_id && function_exists( 'wc_get_product' ) ) ? wc_get_product( $product_id ) : false;
     $sold_out   = $product && ! $product->is_in_stock();
 
-    // Post the ticket form to the ticket product's page: its cart cookies survive for guests.
     $form_action = $product ? get_permalink( $product->get_id() ) : '';
 
     ob_start();
     ?>
-    <!-- Enqueue Google Fonts: Poppins & Lato -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 
     <style>
-      /* Viewport Breakout Technique (Matching courses pattern - zero impact on site header, logo, or nav) */
+      /* Viewport breakout */
       html, body {
         overflow-x: hidden;
       }
 
-      /* Eliminate top gap from Astra's site-content on single events */
+      /* Container resets */
       body.single-gh_event .site-content {
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         margin-top: 0 !important;
       }
 
-      /* Neutralize Astra post content area only (Leave site-header untouched) */
       body.single-gh_event #primary,
       body.single-gh_event #main,
       body.single-gh_event #content .ast-container,
@@ -766,7 +726,7 @@ function gh_single_event_template_shortcode( $atts ) {
         box-sizing: border-box;
       }
 
-      /* Alignment container - Matches Elementor Inner Boxed Container (ID 8af001a: 1180px, 0 padding, centered) */
+      /* Inner container */
       .gh-single-container {
         width: 100%;
         max-width: 1180px;
@@ -775,7 +735,7 @@ function gh_single_event_template_shortcode( $atts ) {
         box-sizing: border-box;
       }
 
-      /* Full-Width Top Banner - Matches Elementor Outer Container (ID 8aa8761: 50px top/bottom, 20px left/right) */
+      /* Hero banner */
       .gh-single-banner {
         width: 100%;
         background-color: var(--gh-hero-color);
@@ -815,7 +775,7 @@ function gh_single_event_template_shortcode( $atts ) {
         margin: 0;
       }
 
-      /* Content Area Below Banner - Matches Elementor Outer Container padding (20px left/right) */
+      /* Content area */
       .gh-single-body {
         width: 100%;
         background-color: #FFFFFF;
@@ -823,7 +783,7 @@ function gh_single_event_template_shortcode( $atts ) {
         box-sizing: border-box;
       }
 
-      /* Ticket Card */
+      /* Ticket card */
       .gh-single-card {
         background-color: var(--gh-card-bg);
         border-radius: 20px;
@@ -887,7 +847,7 @@ function gh_single_event_template_shortcode( $atts ) {
         text-align: right;
       }
 
-      /* Ticket Card CTA Button */
+      /* Checkout button */
       .gh-single-btn {
         display: block;
         width: 100%;
@@ -919,7 +879,7 @@ function gh_single_event_template_shortcode( $atts ) {
         transform: none !important;
       }
 
-      /* Responsive Breakpoints (Matches Elementor padding_mobile: 30px 20px) */
+      /* Responsive */
       @media (max-width: 1024px) {
         .gh-single-banner {
           padding: 40px 20px;
@@ -966,7 +926,7 @@ function gh_single_event_template_shortcode( $atts ) {
 
     <div class="gh-single-event-wrap">
       
-      <!-- Top Dynamic Hero Banner -->
+      <!-- Hero Banner -->
       <header class="gh-single-banner">
         <div class="gh-single-container">
           <div class="gh-single-category"><?php echo esc_html( $atts['tag'] ); ?></div>
@@ -977,7 +937,7 @@ function gh_single_event_template_shortcode( $atts ) {
         </div>
       </header>
 
-      <!-- Main Body with Dynamic Ticket Card -->
+      <!-- Event Body -->
       <main class="gh-single-body">
         <div class="gh-single-container">
           <div class="gh-single-card">
@@ -1001,7 +961,7 @@ function gh_single_event_template_shortcode( $atts ) {
               <?php endif; ?>
             </div>
 
-            <!-- Direct Checkout Button Form -->
+            <!-- Checkout Form -->
             <?php if ( $sold_out ) : ?>
               <button type="button" class="gh-single-btn gh-single-btn--soldout" disabled>
                 <?php echo esc_html( $atts['sold_out_label'] ); ?>
@@ -1027,11 +987,7 @@ function gh_single_event_template_shortcode( $atts ) {
 }
 
 /**
- * ============================================================
- * 11. SINGLE EVENT TEMPLATE OVERRIDE (Same pattern as Courses)
- *     Renders single events directly between get_header() and
- *     get_footer(), eliminating Astra's container & white gap.
- * ============================================================
+ * Single event template redirect.
  */
 add_filter( 'template_include', function ( $template ) {
     if ( ! is_singular( 'gh_event' ) ) {
@@ -1081,15 +1037,12 @@ add_filter( 'template_include', function ( $template ) {
 
 
 /**
- * ============================================================
- * 12. EVENT CHECKOUT — a lighter checkout when the cart holds
- *     ONLY event tickets: no account needed, fewer fields and no
- *     CartFlows returning-customer login box. Course checkouts
- *     are not affected.
- * ============================================================
+ * Streamlined checkout for event tickets.
+ *
+ * Removes unnecessary fields and requirements when cart contains only tickets.
  */
 
-// True only when the cart holds nothing but event tickets.
+// Determine whether cart contains exclusively event tickets.
 function gh_cart_is_events_only() {
     if ( ! function_exists( 'WC' ) || ! WC()->cart || WC()->cart->is_empty() ) {
         return false;
@@ -1102,7 +1055,7 @@ function gh_cart_is_events_only() {
     return true;
 }
 
-// Event tickets: no account needed, no account creation.
+// Enable guest checkout and bypass account creation requirements for ticket purchases.
 add_filter( 'woocommerce_checkout_registration_required', function( $required ) {
     return gh_cart_is_events_only() ? false : $required;
 } );
@@ -1116,7 +1069,7 @@ add_filter( 'pre_option_woocommerce_enable_signup_and_login_from_checkout', func
     return gh_cart_is_events_only() ? 'no' : $pre;
 } );
 
-// Event tickets: trim the checkout form to the essentials.
+// Remove non-essential billing fields and order comments for ticket checkout.
 add_filter( 'woocommerce_checkout_fields', function( $fields ) {
     if ( ! gh_cart_is_events_only() ) {
         return $fields;
@@ -1137,7 +1090,7 @@ add_filter( 'woocommerce_checkout_fields', function( $fields ) {
     return $fields;
 }, 9999 );
 
-// Event tickets: hide CartFlows's returning-customer login box and message.
+// Hide CartFlows returning-customer login prompts on ticket checkout.
 add_action( 'wp_head', function() {
     if ( ! gh_cart_is_events_only() ) {
         return;
@@ -1150,23 +1103,13 @@ add_action( 'wp_head', function() {
 
 
 /**
- * ============================================================
- * 13. TICKETS WITH QR CODE
+ * QR code ticketing and check-in system.
  *
- *     After a ticket order is paid, every ticket gets its own
- *     long random code, stored on your site. The buyer receives
- *     an email with a link to their ticket page, which shows a
- *     QR code. At the door, event staff scan the QR with a phone
- *     camera. The site looks the code up, so a QR that was made
- *     up or edited is rejected, and a ticket can only be checked
- *     in once.
- *
- *     Ticket page (buyer):  yoursite.com/?gh_pass=CODE
- *     Check-in (staff):     yoursite.com/?gh_verify=CODE
- * ============================================================
+ * Handles ticket issuance upon payment, email delivery, attendee passes,
+ * and door verification for event staff.
  */
 
-// A failure in ticket code must never block a payment.
+// Error handling wrapper to prevent ticket processing failures from breaking order flow.
 function gh_ticket_safe( $callback, ...$args ) {
     try {
         return call_user_func_array( $callback, $args );
@@ -1178,8 +1121,9 @@ function gh_ticket_safe( $callback, ...$args ) {
     }
 }
 
-/* ---------- 13a. Event staff role ---------- */
-
+/**
+ * Event staff role and capabilities.
+ */
 add_action( 'init', function() {
     if ( ! get_role( 'gh_event_staff' ) ) {
         add_role( 'gh_event_staff', 'Event Staff', array( 'read' => true, 'gh_check_in' => true ) );
@@ -1196,8 +1140,9 @@ function gh_ticket_user_can_check_in() {
     return is_user_logged_in() && ( current_user_can( 'gh_check_in' ) || current_user_can( 'manage_options' ) );
 }
 
-/* ---------- 13b. Ticket records (Events > Tickets) ---------- */
-
+/**
+ * Ticket post type and helper functions.
+ */
 add_action( 'init', function() {
     register_post_type( 'gh_ticket', array(
         'labels'              => array(
@@ -1269,7 +1214,7 @@ function gh_ticket_event_color( $event_id ) {
 
 function gh_ticket_create( $order, $event_id ) {
     try {
-        $code = bin2hex( random_bytes( 12 ) ); // 24 characters, 96 bits: impossible to guess.
+        $code = bin2hex( random_bytes( 12 ) ); // 24-character cryptographic token.
     } catch ( Throwable $e ) {
         $code = strtolower( wp_generate_password( 24, false, false ) );
         $code = preg_replace( '/[^a-f0-9]/', 'a', $code );
@@ -1296,15 +1241,16 @@ function gh_ticket_create( $order, $event_id ) {
     return (int) $ticket_id;
 }
 
-/* ---------- 13c. Issue tickets when the order is paid ---------- */
-
+/**
+ * Ticket issuance and order status hooks.
+ */
 function gh_ticket_issue_for_order( $order_id ) {
     $order = wc_get_order( $order_id );
     if ( ! $order || $order->get_meta( '_gh_tickets_issued' ) ) {
         return;
     }
 
-    // Which event tickets are in this order?
+    // Collect event items from order.
     $wanted = array();
     foreach ( $order->get_items() as $item ) {
         $event_id = (int) get_post_meta( $item->get_product_id(), '_gh_event_id', true );
@@ -1316,7 +1262,7 @@ function gh_ticket_issue_for_order( $order_id ) {
         return;
     }
 
-    // Set the flag first, so two payment hooks firing together cannot create duplicates.
+    // Mark order early to prevent duplicate issuance across concurrent requests.
     $order->update_meta_data( '_gh_tickets_issued', 1 );
     $order->save();
 
@@ -1342,7 +1288,7 @@ function gh_ticket_issue_for_order( $order_id ) {
 add_action( 'woocommerce_order_status_processing', function( $id ) { gh_ticket_safe( 'gh_ticket_issue_for_order', $id ); }, 50 );
 add_action( 'woocommerce_order_status_completed', function( $id ) { gh_ticket_safe( 'gh_ticket_issue_for_order', $id ); }, 50 );
 
-// A refunded, cancelled or failed order voids its tickets (unless already used).
+// Invalidate unused tickets when an order is refunded, cancelled, or failed.
 function gh_ticket_void_for_order( $order_id ) {
     foreach ( gh_ticket_tickets_for_order( $order_id ) as $ticket_id ) {
         if ( 'checked_in' !== get_post_meta( $ticket_id, '_gh_ticket_status', true ) ) {
@@ -1354,8 +1300,9 @@ foreach ( array( 'refunded', 'cancelled', 'failed' ) as $gh_ticket_void_status )
     add_action( 'woocommerce_order_status_' . $gh_ticket_void_status, function( $id ) { gh_ticket_safe( 'gh_ticket_void_for_order', $id ); } );
 }
 
-/* ---------- 13d. Ticket email ---------- */
-
+/**
+ * Ticket email notifications.
+ */
 function gh_ticket_send_email( $order, $force = false ) {
     if ( ! $force && $order->get_meta( '_gh_tickets_emailed' ) ) {
         return;
@@ -1407,8 +1354,7 @@ function gh_ticket_send_email( $order, $force = false ) {
 
     $subject = 1 === count( array_unique( $titles ) ) ? 'Your ticket for ' . $titles[0] : 'Your event tickets';
 
-    // Send through WooCommerce's mailer, so the ticket email comes from the same sender
-    // address and name as your order emails (WooCommerce > Settings > Emails).
+    // Send using WooCommerce mailer to inherit standard email settings and styling.
     $sent = false;
     if ( function_exists( 'WC' ) && WC()->mailer() ) {
         $message = WC()->mailer()->wrap_message( 'Your event ticket', $html );
@@ -1416,7 +1362,7 @@ function gh_ticket_send_email( $order, $force = false ) {
         $sent    = $email->send( $to, $subject, $message, "Content-Type: text/html\r\n", array() );
     }
 
-    // Fallback: plain WordPress mail, still using WooCommerce's sender details.
+    // Fallback to wp_mail using WooCommerce sender headers if WC mailer is unavailable.
     if ( ! $sent ) {
         $from_name    = wp_specialchars_decode( (string) get_option( 'woocommerce_email_from_name' ), ENT_QUOTES );
         $from_address = sanitize_email( (string) get_option( 'woocommerce_email_from_address' ) );
@@ -1436,7 +1382,7 @@ function gh_ticket_send_email( $order, $force = false ) {
     $order->save();
 }
 
-// Resend from the WooCommerce order screen.
+// Add order action to resend ticket emails from WP Admin.
 add_filter( 'woocommerce_order_actions', function( $actions ) {
     global $theorder;
     if ( $theorder && $theorder->get_meta( '_gh_tickets_issued' ) ) {
@@ -1448,7 +1394,7 @@ add_action( 'woocommerce_order_action_gh_resend_tickets', function( $order ) {
     gh_ticket_safe( 'gh_ticket_send_email', $order, true );
 } );
 
-// Also show the ticket link on the order confirmation page, when the theme shows it.
+// Display ticket pass link on the WooCommerce order confirmation page.
 add_action( 'woocommerce_thankyou', function( $order_id ) {
     $links = '';
     foreach ( gh_ticket_tickets_for_order( $order_id ) as $ticket_id ) {
@@ -1464,9 +1410,11 @@ add_action( 'woocommerce_thankyou', function( $order_id ) {
     }
 }, 20 );
 
-/* ---------- 13e. Ticket page (buyer) and check-in page (staff) ---------- */
+/**
+ * Attendee pass and staff check-in views.
+ */
 
-// Prints a complete standalone page and stops. Not cached, not indexed by search engines.
+// Render standalone response with no-cache and noindex headers.
 function gh_ticket_page( $title, $body, $status = 200 ) {
     status_header( $status );
     nocache_headers();
@@ -1523,7 +1471,7 @@ function gh_ticket_message_page( $heading, $text, $status = 200, $extra_html = '
     );
 }
 
-// What the buyer sees: their ticket and QR code.
+// Render attendee pass page (?gh_pass=CODE) with QR code.
 function gh_ticket_show_pass( $raw ) {
     if ( ! defined( 'DONOTCACHEPAGE' ) ) {
         define( 'DONOTCACHEPAGE', true );
@@ -1599,7 +1547,7 @@ function gh_ticket_show_pass( $raw ) {
     gh_ticket_page( 'Your ticket', ob_get_clean() );
 }
 
-// Marks a ticket as used. Atomic: if two staff scan the same ticket at once, only one succeeds.
+// Atomic check-in operation using direct SQL update to prevent double check-ins.
 function gh_ticket_check_in( $ticket_id ) {
     global $wpdb;
 
@@ -1621,7 +1569,7 @@ function gh_ticket_check_in( $ticket_id ) {
     return true;
 }
 
-// What staff see after scanning: valid, already used, or not valid.
+// Render staff check-in verification view (?gh_verify=CODE).
 function gh_ticket_show_verify( $raw ) {
     if ( ! defined( 'DONOTCACHEPAGE' ) ) {
         define( 'DONOTCACHEPAGE', true );
@@ -1630,7 +1578,7 @@ function gh_ticket_show_verify( $raw ) {
     $code = gh_ticket_clean_code( $raw );
     $self = add_query_arg( 'gh_verify', $code, home_url( '/' ) );
 
-    // Only event staff may see ticket details or check people in.
+    // Require check-in capability for verification view.
     if ( ! gh_ticket_user_can_check_in() ) {
         gh_ticket_message_page(
             'Event staff only',
@@ -1718,8 +1666,9 @@ add_action( 'template_redirect', function() {
     }
 }, 1 );
 
-/* ---------- 13f. Admin: attendee list (Events > Tickets) ---------- */
-
+/**
+ * Admin attendee list and ticket management.
+ */
 add_filter( 'manage_gh_ticket_posts_columns', function( $columns ) {
     return array(
         'cb'        => isset( $columns['cb'] ) ? $columns['cb'] : '',
@@ -1803,7 +1752,7 @@ function gh_ticket_render_meta_box( $post ) {
                         <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $status, $key ); ?>><?php echo esc_html( $label ); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <p class="description">Change this only to fix a mistake, for example to undo a check-in.</p>
+                <p class="description">Manual status override for administrative corrections.</p>
             </td>
         </tr>
     </table>
@@ -1832,3 +1781,47 @@ add_action( 'save_post_gh_ticket', function( $post_id ) {
         delete_post_meta( $post_id, '_gh_ticket_checked_in_by' );
     }
 } );
+
+
+/**
+ * Return URL redirect handler.
+ *
+ * Redirects event ticket buyers directly to their ticket pass upon order completion.
+ */
+function gh_event_return_url( $url, $order = null ) {
+    if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+        return $url;
+    }
+
+    $has_event = false;
+    foreach ( $order->get_items() as $item ) {
+        if ( get_post_meta( $item->get_product_id(), '_gh_event_id', true ) ) {
+            $has_event = true;
+        } else {
+            return $url; // Non-event products present: retain default return URL.
+        }
+    }
+    if ( ! $has_event ) {
+        return $url;
+    }
+
+    // Redirect directly to ticket pass if issued.
+    foreach ( gh_ticket_tickets_for_order( $order->get_id() ) as $ticket_id ) {
+        if ( 'void' === get_post_meta( $ticket_id, '_gh_ticket_status', true ) ) {
+            continue;
+        }
+        $code = get_post_meta( $ticket_id, '_gh_ticket_code', true );
+        if ( $code ) {
+            return add_query_arg( 'gh_pass', $code, home_url( '/' ) );
+        }
+    }
+
+    // Fallback to standard checkout order received URL.
+    return $order->get_checkout_order_received_url();
+}
+
+// Execute late to override third-party funnel redirects.
+add_filter( 'woocommerce_get_return_url', function( $url, $order = null ) {
+    $result = gh_ticket_safe( 'gh_event_return_url', $url, $order );
+    return ( is_string( $result ) && '' !== $result ) ? $result : $url;
+}, 100000, 2 );
